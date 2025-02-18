@@ -37,6 +37,36 @@ namespace URBANFORT.Utilities.Queries
 
             return targets;
         }
+        /// <summary>
+        /// Perform a sphere query to find all targets within the detection radius
+        /// </summary>
+        /// <param name="origin">The origin of the sphere</param>
+        /// <param name="radius">The radius of the sphere</param>
+        /// <param name="mask">The collision mask to use</param>
+        /// <returns>An array of the objects within the sphere</returns>
+        public static Godot.Collections.Array<Godot.Collections.Dictionary> MultiCubeCast(Node3D target, Vector3 origin, Vector3 dimensions, int mask = 1 << 0 , bool debug = false)
+        {
+            Rid shapeRid = PhysicsServer3D.BoxShapeCreate();
+            PhysicsServer3D.ShapeSetData(shapeRid, dimensions);
+            var queryParams = new PhysicsShapeQueryParameters3D
+            {
+                ShapeRid = shapeRid,
+                Transform = new Transform3D(target.Basis, origin)
+            };
+            queryParams.Exclude.Add(shapeRid);
+
+            if (debug)
+            {
+                // TODO: Figure out how to draw debug geometry efficiently
+                DebugDraw3D.DrawBox(origin, target.Basis.GetRotationQuaternion(), dimensions, Colors.Red, true, 0.05f);
+            }
+
+            var targets = target.GetWorld3D().DirectSpaceState.IntersectShape(queryParams);
+            // Free the shape
+            PhysicsServer3D.FreeRid(shapeRid);
+
+            return targets;
+        }
 
         /// <summary>
         /// Perform a raycast for a single target
