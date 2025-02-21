@@ -74,5 +74,32 @@ namespace URBANFORT.Utilities.State
             }
             CurrentState = newState;
         }
+
+        public float GetStateFloat (string key, float defaultValue = 0f)
+        {
+            if (Data.TryGetValue(key, out object value))
+            {
+                return (float)value;
+            }
+            return defaultValue;
+        }
+
+        public bool GetStateBoolean (string key, bool defaultValue = false)
+        {
+            if (Data.TryGetValue(key, out object value))
+            {
+                return (bool)value;
+            }
+            return defaultValue;
+        }
+
+        public object GetStateObject (string key, object defaultValue = null)
+        {
+            if (Data.TryGetValue(key, out object value))
+            {
+                return value;
+            }
+            return defaultValue;
+        }
     }
 }
