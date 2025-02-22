@@ -4,6 +4,12 @@ namespace URBANFORT.Utilities.State
 {
     public class Transition
     {
+        public string Name {
+            get {
+                return $"{From.Name} -> {To.Name}";
+            }
+        }
+
         public State From { get; set; }
         public State To { get; set; }
         public Func<bool> Condition { get; set; }

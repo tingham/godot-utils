@@ -11,6 +11,9 @@ namespace URBANFORT.Utilities.State
         public State CurrentState { get; set; }
         public Dictionary<string, object> Data { get; set; } = [];
 
+        public delegate void TransitionHandler(Transition transition);
+        public event TransitionHandler OnTransition;
+
         public List<State> States
         {
             get
@@ -29,6 +32,18 @@ namespace URBANFORT.Utilities.State
                 states.AddRange(leafStates);
                 return [.. states.Distinct()];
             }
+        }
+
+        public State Append (string name, Action enter, Action<double> update, Action exit)
+        {
+            var state = new State {
+                Name = name,
+                Enter = enter,
+                Update = update,
+                Exit = exit,
+                Parent = this
+            };
+            return state;
         }
 
         public void Update(double delta)
@@ -55,6 +70,7 @@ namespace URBANFORT.Utilities.State
                     }
                     else
                     {
+                        OnTransition?.Invoke(transition);
                         ChangeState(transition.To);
                     }
                     break;

@@ -5,6 +5,8 @@ namespace URBANFORT.Utilities.State
 {
     public class State
     {
+        public string Name { get; set; }
+
         public List<Transition> Transitions { get; set; } = new List<Transition>();
         public StateMachine Parent { get; set; }
 
