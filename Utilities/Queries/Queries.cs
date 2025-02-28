@@ -93,6 +93,13 @@ namespace URBANFORT.Utilities.Queries
             return (Node3D)collider;
         }
 
+        public static Node3D RayCast (Node3D target, Vector3 origin, Vector3 destination, uint mask, bool debug)
+        {
+            var direction = (destination - origin).Normalized();
+            var length = (destination - origin).Length();
+            return RayCast(target, origin, direction, length, mask, debug);
+        }
+
         /// <summary>
         /// Given a list of targets, convert them to a list of node3ds
         /// </summary>
