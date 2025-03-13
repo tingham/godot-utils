@@ -100,6 +100,11 @@ namespace URBANFORT.Utilities.State
             return defaultValue;
         }
 
+        public void SetStateFloat (string key, float value)
+        {
+            Data[key] = value;
+        }
+
         public bool GetStateBoolean (string key, bool defaultValue = false)
         {
             if (Data.TryGetValue(key, out object value))
@@ -109,6 +114,11 @@ namespace URBANFORT.Utilities.State
             return defaultValue;
         }
 
+        public void SetStateBoolean (string key, bool value)
+        {
+            Data[key] = value;
+        }
+
         public object GetStateObject (string key, object defaultValue = null)
         {
             if (Data.TryGetValue(key, out object value))
@@ -116,6 +126,11 @@ namespace URBANFORT.Utilities.State
                 return value;
             }
             return defaultValue;
+        }
+
+        public void SetStateObject (string key, object value)
+        {
+            Data[key] = value;
         }
     }
 }
