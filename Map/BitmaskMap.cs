@@ -23,6 +23,10 @@ public partial class BitmaskMap : GridMap
         West = 8
     }
 
+    public static readonly List<Directions> Corners = [Directions.NorthWest, Directions.NorthEast, Directions.SouthEast, Directions.SouthWest];
+
+    public static readonly List<Directions> Cardinals = [Directions.North, Directions.East, Directions.South, Directions.West];
+
     public static readonly Dictionary<int, int> Remap = new()
     {
         { 2, 1 }, { 8, 2 }, { 10, 3 }, { 11, 4 }, { 16, 5 }, { 18, 6 }, { 22, 7 },
@@ -40,13 +44,28 @@ public partial class BitmaskMap : GridMap
     };
 
     // 232 should alias to 104
+    // 215 should alias to 214
+    // 152 shoud alias to 24
+    // 56 shoud alias to 24
+    // 112 should alias to 80
+
+    public static readonly Dictionary<int, int> Alias = new()
+    {
+        { 232, 104 }, { 215, 214 }, { 152, 24 }, { 56, 24 }, { 112, 80 }, { 110, 106 }, { 252, 240 },
+        { 14, 10 }, { 28, 24 }, { 25, 24 }, { 60, 24 }, { 235, 107 }, { 246, 214 }, { 57, 24 }, { 40, 8 },
+        { 15, 11 }, { 116, 80 }, { 62, 30 }, { 195, 66 }, { 46, 10 }, { 84, 80 }, { 102, 66 }, { 20, 16 }
+    };
+
 
     // 1*0 + 2*1 + 4*1 + 8*0 + 16*1 + 32*1 + 64*0 + 128*1 = 182
     // 1*0 + 2*1 + 4*1 + 8*0 + 16*1 + 32*0 + 64*0 + 128*0 = 22
 
 
-    [ExportToolButton("Cleanup")]
+    [ExportToolButton("Paint")]
     public Callable Cleanup => Callable.From(() => Repaint());
+
+    [Export]
+    public bool Annotate { get; set; } = false;
 
     [ExportToolButton("Produce Possible Values")]
     public Callable ProducePossibleValuesButton => Callable.From(() => ProducePossibleValues());
@@ -60,6 +79,19 @@ public partial class BitmaskMap : GridMap
         // Unset all cells in drawable
         Drawable.Clear();
 
+        Node3D annotationsContainer = GetTree().Root.GetNode<Node3D>("Annotations");
+        if (annotationsContainer == null)
+        {
+            annotationsContainer = new Node3D();
+            annotationsContainer.Name = "Annotations";
+            GetTree().Root.AddChild(annotationsContainer);
+        } else {
+            foreach (Node child in annotationsContainer.GetChildren())
+            {
+                child.QueueFree();
+            }
+        }
+
         // Get a list of cells that have something assigned
 
         var cells = GetUsedCells();
@@ -67,44 +99,60 @@ public partial class BitmaskMap : GridMap
         {
             int filledTotal = 0;
 
-            bool hasFourCorners = false;
-            int cornerCount = 0;
-            foreach (var corner in new List<Directions>() { Directions.NorthWest, Directions.NorthEast, Directions.SouthWest, Directions.SouthEast })
+            foreach (var aliasKey in Alias.Keys)
             {
-                var neighbor = GetNeighborCoordinate(cell, corner);
-                if (GetCellItem(neighbor) != GridMap.InvalidCellItem)
-                {
-                    cornerCount++;
-                }
+                GD.Print($"{aliasKey} - {Alias[aliasKey]} = {aliasKey - Alias[aliasKey]}");
             }
-            hasFourCorners = cornerCount == 4;
 
-            if (hasFourCorners)
+            foreach (Directions dir in Directions.GetValues(typeof(Directions)))
             {
-                // For each direction in Directions get the filled status
-                foreach (var dir in Directions.GetValues(typeof(Directions)))
+                var neighbor = GetNeighborCoordinate(cell, dir);
+                if (GetCellItem(neighbor) == InvalidCellItem)
                 {
-                    var neighbor = GetNeighborCoordinate(cell, (Directions)dir);
-                    if (GetCellItem(neighbor) != GridMap.InvalidCellItem)
+                    continue;
+                }
+
+                if (Corners.Contains(dir))
+                {
+                    var northNeighbor = GetNeighborCoordinate(cell, Directions.North);
+                    var eastNeighbor = GetNeighborCoordinate(cell, Directions.East);
+                    var southNeighbor = GetNeighborCoordinate(cell, Directions.South);
+                    var westNeighbor = GetNeighborCoordinate(cell, Directions.West);
+
+                    // If dir is northwest and either north or west of that are empty skip
+                    if (dir == Directions.NorthWest && (GetCellItem(northNeighbor) == InvalidCellItem || GetCellItem(westNeighbor) == InvalidCellItem))
                     {
-                        filledTotal += (int)dir;
+                        continue;
+                    }
+
+                    // If dir is northeast and either north or east of that are empty skip
+                    if (dir == Directions.NorthEast && (GetCellItem(northNeighbor) == InvalidCellItem || GetCellItem(eastNeighbor) == InvalidCellItem))
+                    {
+                        continue;
+                    }
+
+                    // If dir is southeast and either south or east of that are empty skip
+                    if (dir == Directions.SouthEast && (GetCellItem(southNeighbor) == InvalidCellItem || GetCellItem(eastNeighbor) == InvalidCellItem))
+                    {
+                        continue;
+                    }
+
+                    // If dir is southwest and either south or west of that are empty skip
+                    if (dir == Directions.SouthWest && (GetCellItem(southNeighbor) == InvalidCellItem || GetCellItem(westNeighbor) == InvalidCellItem))
+                    {
+                        continue;
                     }
                 }
-            } else {
-                foreach (var dir in new List<Directions>() { Directions.North, Directions.East, Directions.South, Directions.West })
-                {
-                    var neighbor = GetNeighborCoordinate(cell, dir);
-                    if (GetCellItem(neighbor) != GridMap.InvalidCellItem)
-                    {
-                        filledTotal += (int)dir;
-                    }
-                }
+
+                filledTotal += (int)dir;
             }
 
             if (Drawable != null) {
                 try
                 {
+                    // int meshItemIndex = Drawable.MeshLibrary.FindItemByName($"{MeshLibraryItemPrefix}{filledTotal}{MeshLibraryItemSuffix}");
                     int meshItemIndex = Drawable.MeshLibrary.FindItemByName($"{MeshLibraryItemPrefix}{filledTotal}{MeshLibraryItemSuffix}");
+
                     if (meshItemIndex != -1)
                     {
                         GD.Print($"Setting cell at {cell} to {filledTotal}");
@@ -113,6 +161,26 @@ public partial class BitmaskMap : GridMap
                     else
                     {
                         GD.Print($"No item found for cell {cell} {MeshLibraryItemPrefix}{filledTotal}{MeshLibraryItemSuffix}");
+                    }
+                    if (Annotate)
+                    {
+                        // Create a Label3D for the cell at its world position with the text value of filledTotal
+                        var label = new Label3D();
+                        label.Text = filledTotal.ToString();
+                        // Make the font size 22px
+                        label.FontSize = 48;
+                        Vector3 labelPosition = Drawable.ToGlobal(Drawable.ToLocal(cell)) * Drawable.CellSize;
+                        labelPosition.X += 0.25f;
+                        labelPosition.Z += 0.25f;
+                        labelPosition.Y += 3;
+                        label.Transform = new Transform3D(Basis.Identity.Rotated(Vector3.Right, -90f), labelPosition);
+                        if (meshItemIndex == -1) {
+                            label.Modulate = new Color(1, 0, 0);
+                        } else {
+                            label.Modulate = new Color(0, 0.5f, 0);
+                        }
+                        annotationsContainer.AddChild(label);
+                        label.SetOwner(annotationsContainer);
                     }
                 }
                 catch (Exception e)
