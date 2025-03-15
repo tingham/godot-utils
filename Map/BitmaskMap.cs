@@ -51,9 +51,7 @@ public partial class BitmaskMap : GridMap
 
     public static readonly Dictionary<int, int> Alias = new()
     {
-        { 232, 104 }, { 215, 214 }, { 152, 24 }, { 56, 24 }, { 112, 80 }, { 110, 106 }, { 252, 240 },
-        { 14, 10 }, { 28, 24 }, { 25, 24 }, { 60, 24 }, { 235, 107 }, { 246, 214 }, { 57, 24 }, { 40, 8 },
-        { 15, 11 }, { 116, 80 }, { 62, 30 }, { 195, 66 }, { 46, 10 }, { 84, 80 }, { 102, 66 }, { 20, 16 }
+        { 248, 240 }
     };
 
 
@@ -145,6 +143,11 @@ public partial class BitmaskMap : GridMap
                 }
 
                 filledTotal += (int)dir;
+            }
+
+            if (Alias.TryGetValue(filledTotal, out int value))
+            {
+                filledTotal = value;
             }
 
             if (Drawable != null) {
