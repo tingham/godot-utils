@@ -1,9 +1,21 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
+// your namespace will vary
 namespace URBANFORT.Map;
+
+public enum Directions
+{
+    NorthWest = 1,
+    North = 2,
+    NorthEast = 4,
+    East = 16,
+    SouthEast = 128,
+    South = 64,
+    SouthWest = 32,
+    West = 8
+}
 
 /// <summary>
 /// A grid map that uses a bitmask to determine the asset to place on the grid for each mask value.
@@ -11,72 +23,34 @@ namespace URBANFORT.Map;
 [Tool]
 public partial class BitmaskMap : GridMap
 {
-    public enum Directions
-    {
-        NorthWest = 1,
-        North = 2,
-        NorthEast = 4,
-        East = 16,
-        SouthEast = 128,
-        South = 64,
-        SouthWest = 32,
-        West = 8
-    }
 
     public static readonly List<Directions> Corners = [Directions.NorthWest, Directions.NorthEast, Directions.SouthEast, Directions.SouthWest];
-
-    public static readonly List<Directions> Cardinals = [Directions.North, Directions.East, Directions.South, Directions.West];
-
-    public static readonly Dictionary<int, int> Remap = new()
-    {
-        { 2, 1 }, { 8, 2 }, { 10, 3 }, { 11, 4 }, { 16, 5 }, { 18, 6 }, { 22, 7 },
-        { 24, 8 }, { 26, 9 }, { 27, 10 }, { 30, 11 }, { 31, 12 }, { 64, 13 },
-        { 66, 14 }, { 72, 15 }, { 74, 16 }, { 75, 17 }, { 80, 18 }, { 82, 19 },
-        { 86, 20 }, { 88, 21 }, { 90, 22 }, { 91, 23 }, { 94, 24 }, { 95, 25 },
-        { 104, 26 }, { 106, 27 }, { 107, 28 }, { 120, 29 }, { 122, 30 }, { 123, 31 },
-        { 126, 32 }, { 127, 33 }, { 208, 34 }, { 210, 35 }, { 214, 36 }, { 216, 37 },
-        { 218, 38 }, { 219, 39 }, { 222, 40 }, { 223, 41 }, { 248, 42 }, { 250, 43 },
-        { 251, 44 }, { 254, 45 }, { 255, 46 }, { 0, 47 }
-    };
-
-    public static readonly List<int> RemapKeys = new () {
-        2, 8, 10, 11, 16, 18, 22, 24, 26, 27, 30, 31, 64, 66, 72, 74, 75, 80, 82, 86, 88, 90, 91, 94, 95, 104, 106, 107, 120, 122, 123, 126, 127, 208, 210, 214, 216, 218, 219, 222, 223, 248, 250, 251, 254, 255, 0
-    };
-
-    // 232 should alias to 104
-    // 215 should alias to 214
-    // 152 shoud alias to 24
-    // 56 shoud alias to 24
-    // 112 should alias to 80
-
-    public static readonly Dictionary<int, int> Alias = new()
-    {
-        { 248, 240 }
-    };
-
-
-    // 1*0 + 2*1 + 4*1 + 8*0 + 16*1 + 32*1 + 64*0 + 128*1 = 182
-    // 1*0 + 2*1 + 4*1 + 8*0 + 16*1 + 32*0 + 64*0 + 128*0 = 22
-
 
     [ExportToolButton("Paint")]
     public Callable Cleanup => Callable.From(() => Repaint());
 
+    // DEBUG: Annotate the grid with the bitmask value
     [Export]
     public bool Annotate { get; set; } = false;
 
-    [ExportToolButton("Produce Possible Values")]
-    public Callable ProducePossibleValuesButton => Callable.From(() => ProducePossibleValues());
+    // The drawable grid map that will be painted
+    [Export]
+    public GridMap Drawable { get; set; }
 
-    public void ProducePossibleValues ()
-    {
-    }
+    // I named my tiles simply by their bitmask value; but you might want to include SM_ or something
+    [Export]
+    public string MeshLibraryItemPrefix { get; set; } = "";
+
+    // Same reasoning as the prefix, just wanted a little future-proofing
+    [Export]
+    public string MeshLibraryItemSuffix { get; set; } = "";
 
     public void Repaint ()
     {
         // Unset all cells in drawable
         Drawable.Clear();
 
+        // This has a bug that makes labels appear in all open scenes that I have not worked on - Reloading Godot clears them and they are debug annotations in any case
         Node3D annotationsContainer = GetTree().Root.GetNode<Node3D>("Annotations");
         if (annotationsContainer == null)
         {
@@ -90,17 +64,11 @@ public partial class BitmaskMap : GridMap
             }
         }
 
-        // Get a list of cells that have something assigned
-
         var cells = GetUsedCells();
+
         foreach (Vector3I cell in cells)
         {
             int filledTotal = 0;
-
-            foreach (var aliasKey in Alias.Keys)
-            {
-                GD.Print($"{aliasKey} - {Alias[aliasKey]} = {aliasKey - Alias[aliasKey]}");
-            }
 
             foreach (Directions dir in Directions.GetValues(typeof(Directions)))
             {
@@ -145,20 +113,13 @@ public partial class BitmaskMap : GridMap
                 filledTotal += (int)dir;
             }
 
-            if (Alias.TryGetValue(filledTotal, out int value))
-            {
-                filledTotal = value;
-            }
-
             if (Drawable != null) {
                 try
                 {
-                    // int meshItemIndex = Drawable.MeshLibrary.FindItemByName($"{MeshLibraryItemPrefix}{filledTotal}{MeshLibraryItemSuffix}");
                     int meshItemIndex = Drawable.MeshLibrary.FindItemByName($"{MeshLibraryItemPrefix}{filledTotal}{MeshLibraryItemSuffix}");
 
                     if (meshItemIndex != -1)
                     {
-                        GD.Print($"Setting cell at {cell} to {filledTotal}");
                         Drawable.SetCellItem(cell, meshItemIndex);
                     }
                     else
@@ -167,11 +128,11 @@ public partial class BitmaskMap : GridMap
                     }
                     if (Annotate)
                     {
-                        // Create a Label3D for the cell at its world position with the text value of filledTotal
-                        var label = new Label3D();
-                        label.Text = filledTotal.ToString();
-                        // Make the font size 22px
-                        label.FontSize = 48;
+                        var label = new Label3D
+                        {
+                            Text = filledTotal.ToString(),
+                            FontSize = 48
+                        };
                         Vector3 labelPosition = Drawable.ToGlobal(Drawable.ToLocal(cell)) * Drawable.CellSize;
                         labelPosition.X += 0.25f;
                         labelPosition.Z += 0.25f;
@@ -198,17 +159,8 @@ public partial class BitmaskMap : GridMap
         }
     }
 
-    [Export]
-    public GridMap Drawable { get; set; }
-
-    [Export]
-    public string MeshLibraryItemPrefix { get; set; } = "";
-
-    [Export]
-    public string MeshLibraryItemSuffix { get; set; } = "";
-
     // In Godot, Z forward (down) is negative
-    public Vector3I GetNeighborCoordinate (Vector3I coordinate, Directions direction)
+    public static Vector3I GetNeighborCoordinate (Vector3I coordinate, Directions direction)
     {
         var neighbor = coordinate;
         switch (direction)
