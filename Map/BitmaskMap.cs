@@ -17,6 +17,20 @@ public enum Directions
     West = 8
 }
 
+public enum BasisIndex 
+{
+    NoRotation = 0,
+    HalfRotation = 10,
+    Negative90 = 16,
+    Positive90 = 22,
+}
+
+public struct Orientation
+{
+    public int OriginalMask { get; set; }
+    public BasisIndex BasisIndex { get; set; }
+}
+
 /// <summary>
 /// A grid map that uses a bitmask to determine the asset to place on the grid for each mask value.
 /// </summary>
@@ -44,6 +58,37 @@ public partial class BitmaskMap : GridMap
     // Same reasoning as the prefix, just wanted a little future-proofing
     [Export]
     public string MeshLibraryItemSuffix { get; set; } = "";
+
+    public Dictionary<int, Orientation> Reorientations { get; set; } = new Dictionary<int, Orientation>() {
+        { 8, new Orientation() { OriginalMask = 2, BasisIndex = BasisIndex.Negative90 } },
+        { 16, new Orientation() { OriginalMask = 2, BasisIndex = BasisIndex.Positive90 } },
+        { 64, new Orientation() { OriginalMask = 2, BasisIndex = BasisIndex.HalfRotation } },
+        { 18, new Orientation() { OriginalMask = 10, BasisIndex = BasisIndex.Positive90 } },
+        { 72, new Orientation() { OriginalMask = 10, BasisIndex = BasisIndex.Negative90 } },
+        { 80, new Orientation() { OriginalMask = 10, BasisIndex = BasisIndex.HalfRotation } },
+        { 22, new Orientation() { OriginalMask = 11, BasisIndex = BasisIndex.Positive90 } },
+        { 104, new Orientation() { OriginalMask = 11, BasisIndex = BasisIndex.Negative90 } },
+        { 208, new Orientation() { OriginalMask = 11, BasisIndex = BasisIndex.HalfRotation } },
+        { 66, new Orientation() { OriginalMask = 24, BasisIndex = BasisIndex.Negative90 } },
+        { 74, new Orientation() { OriginalMask = 26, BasisIndex = BasisIndex.Negative90 } },
+        { 82, new Orientation() { OriginalMask = 26, BasisIndex = BasisIndex.Positive90 } },
+        { 88, new Orientation() { OriginalMask = 26, BasisIndex = BasisIndex.HalfRotation } },
+        { 120, new Orientation() { OriginalMask = 30, BasisIndex = BasisIndex.HalfRotation } },
+        { 216, new Orientation() { OriginalMask = 27, BasisIndex = BasisIndex.HalfRotation } },
+        { 248, new Orientation() { OriginalMask = 31, BasisIndex = BasisIndex.HalfRotation } },
+        { 210, new Orientation() { OriginalMask = 75, BasisIndex = BasisIndex.HalfRotation } },
+        { 106, new Orientation() { OriginalMask = 86, BasisIndex = BasisIndex.HalfRotation } },
+        { 122, new Orientation() { OriginalMask = 91, BasisIndex = BasisIndex.Positive90 } },
+        { 126, new Orientation() { OriginalMask = 91, BasisIndex = BasisIndex.Positive90 } },
+        { 219, new Orientation() { OriginalMask = 91, BasisIndex = BasisIndex.NoRotation } },
+        { 218, new Orientation() { OriginalMask = 94, BasisIndex = BasisIndex.Negative90 } },
+        { 250, new Orientation() { OriginalMask = 95, BasisIndex = BasisIndex.HalfRotation } },
+        { 214, new Orientation() { OriginalMask = 107, BasisIndex = BasisIndex.HalfRotation } },
+        { 31, new Orientation() { OriginalMask = 107, BasisIndex = BasisIndex.Positive90 } },
+        { 223, new Orientation() { OriginalMask = 127, BasisIndex = BasisIndex.Positive90 } },
+        { 251, new Orientation() { OriginalMask = 127, BasisIndex = BasisIndex.Negative90 } },
+        { 254, new Orientation() { OriginalMask = 127, BasisIndex = BasisIndex.HalfRotation } },
+    };
 
     public void Repaint ()
     {
@@ -116,35 +161,21 @@ public partial class BitmaskMap : GridMap
             if (Drawable != null) {
                 try
                 {
+                    int orientation = 0;
+                    if (Reorientations.TryGetValue(filledTotal, out Orientation reorientation))
+                    {
+                        filledTotal = reorientation.OriginalMask;
+                        orientation = (int)reorientation.BasisIndex;
+                    }
                     int meshItemIndex = Drawable.MeshLibrary.FindItemByName($"{MeshLibraryItemPrefix}{filledTotal}{MeshLibraryItemSuffix}");
 
                     if (meshItemIndex != -1)
                     {
-                        Drawable.SetCellItem(cell, meshItemIndex);
+                        Drawable.SetCellItem(cell, meshItemIndex, orientation);
                     }
                     else
                     {
                         GD.Print($"No item found for cell {cell} {MeshLibraryItemPrefix}{filledTotal}{MeshLibraryItemSuffix}");
-                    }
-                    if (Annotate)
-                    {
-                        var label = new Label3D
-                        {
-                            Text = filledTotal.ToString(),
-                            FontSize = 48
-                        };
-                        Vector3 labelPosition = Drawable.ToGlobal(Drawable.ToLocal(cell)) * Drawable.CellSize;
-                        labelPosition.X += 0.25f;
-                        labelPosition.Z += 0.25f;
-                        labelPosition.Y += 3;
-                        label.Transform = new Transform3D(Basis.Identity.Rotated(Vector3.Right, -90f), labelPosition);
-                        if (meshItemIndex == -1) {
-                            label.Modulate = new Color(1, 0, 0);
-                        } else {
-                            label.Modulate = new Color(0, 0.5f, 0);
-                        }
-                        annotationsContainer.AddChild(label);
-                        label.SetOwner(annotationsContainer);
                     }
                 }
                 catch (Exception e)
