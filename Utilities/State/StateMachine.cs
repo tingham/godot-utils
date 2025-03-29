@@ -9,7 +9,8 @@ namespace URBANFORT.Utilities.State
     {
         public State DefaultState { get; set; }
         public State CurrentState { get; set; }
-        public Dictionary<string, object> Data { get; set; } = [];
+        // public Dictionary<string, object> Data { get; set; } = [];
+        public Scenario Data { get; set; }
 
         public delegate void TransitionHandler(Transition transition);
         public event TransitionHandler OnTransition;
@@ -91,46 +92,46 @@ namespace URBANFORT.Utilities.State
             CurrentState = newState;
         }
 
-        public float GetStateFloat (string key, float defaultValue = 0f)
-        {
-            if (Data.TryGetValue(key, out object value))
-            {
-                return (float)value;
-            }
-            return defaultValue;
-        }
+        // public float GetStateFloat (string key, float defaultValue = 0f)
+        // {
+        //     if (Data.TryGetValue(key, out object value))
+        //     {
+        //         return (float)value;
+        //     }
+        //     return defaultValue;
+        // }
 
-        public void SetStateFloat (string key, float value)
-        {
-            Data[key] = value;
-        }
+        // public void SetStateFloat (string key, float value)
+        // {
+        //     Data[key] = value;
+        // }
 
-        public bool GetStateBoolean (string key, bool defaultValue = false)
-        {
-            if (Data.TryGetValue(key, out object value))
-            {
-                return (bool)value;
-            }
-            return defaultValue;
-        }
+        // public bool GetStateBoolean (string key, bool defaultValue = false)
+        // {
+        //     if (Data.TryGetValue(key, out object value))
+        //     {
+        //         return (bool)value;
+        //     }
+        //     return defaultValue;
+        // }
 
-        public void SetStateBoolean (string key, bool value)
-        {
-            Data[key] = value;
-        }
+        // public void SetStateBoolean (string key, bool value)
+        // {
+        //     Data[key] = value;
+        // }
 
-        public object GetStateObject (string key, object defaultValue = null)
-        {
-            if (Data.TryGetValue(key, out object value))
-            {
-                return value;
-            }
-            return defaultValue;
-        }
+        // public object GetStateObject (string key, object defaultValue = null)
+        // {
+        //     if (Data.TryGetValue(key, out object value))
+        //     {
+        //         return value;
+        //     }
+        //     return defaultValue;
+        // }
 
-        public void SetStateObject (string key, object value)
-        {
-            Data[key] = value;
-        }
+        // public void SetStateObject (string key, object value)
+        // {
+        //     Data[key] = value;
+        // }
     }
 }
