@@ -9,6 +9,8 @@ namespace URBANFORT.Utilities.State
         public float Time { get; set; }
         public bool AutomaticallyReset { get; set; }
 
+        public bool IsExpired => Timer >= TimerBase;
+
         public delegate void Expired (Clock clock);
         public event Expired OnExpiredEvent;
     
